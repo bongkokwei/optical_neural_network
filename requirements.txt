@@ -1,0 +1,9 @@
+numpy
+matplotlib
+scipy
+torch
+torchvision
+tqdm
+pytest
+optuna
+gdsfactory
