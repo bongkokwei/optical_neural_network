@@ -70,8 +70,8 @@ def objective(trial):
         }
 
         # Save to JSON file
-        os.makedirs("optimization_results", exist_ok=True)
-        with open(f"optimization_results/trial_{trial.number}.json", "w") as f:
+        os.makedirs("./data/optimisation_results", exist_ok=True)
+        with open(f"./data/optimisation_results/trial_{trial.number}.json", "w") as f:
             json.dump(trial_results, f, indent=4)
 
         return accuracy
@@ -119,8 +119,8 @@ def optimize_hyperparameters(n_trials=50):
         "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S"),
     }
 
-    os.makedirs("optimization_results", exist_ok=True)
-    with open(f"optimization_results/{study_name}_summary.json", "w") as f:
+    os.makedirs("./data/optimisation_results", exist_ok=True)
+    with open(f"./data/optimisation_results/{study_name}_summary.json", "w") as f:
         json.dump(study_results, f, indent=4)
 
     return study
