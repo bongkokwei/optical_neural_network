@@ -1,10 +1,8 @@
 import torch.nn as nn
 
-from ..layer.optical_layer import (
-    OpticalLinearLayer,
-    SegmentedOpticalLayer,
-)
-
+from ..layer.optical_layer import OpticalLinearLayer
+from ..layer.adaptive_optical_layer import AdaptiveOpticalLayer
+from ..layer.segmented_optical_layer import SegmentedOpticalLayer
 from .utils import create_optical_layers, create_reduction_layers
 
 
@@ -16,6 +14,7 @@ class OpticalMNISTClassifier(nn.Module):
         num_layers=3,
         num_optical_input=32,
         num_optical_layers=2,
+        device_max_inputs=32,
         dropout_rate=0.2,
     ):
         super(OpticalMNISTClassifier, self).__init__()
@@ -28,10 +27,12 @@ class OpticalMNISTClassifier(nn.Module):
                 num_layers,
             )
 
-        itf_layer = lambda in_features, out_features, num_modes: OpticalLinearLayer(
-            in_features=in_features,
-            out_features=out_features,
-            num_modes=num_modes,
+        itf_layer = (
+            lambda in_features, out_features, device_max_inputs: AdaptiveOpticalLayer(
+                in_features=in_features,
+                out_features=out_features,
+                device_max_inputs=device_max_inputs,
+            )
         )
 
         # Optical layers
@@ -39,7 +40,7 @@ class OpticalMNISTClassifier(nn.Module):
             num_layers=num_optical_layers,
             initial_size=num_optical_input,
             final_size=num_classes,
-            num_modes=None,  # size of the physical gmzi
+            device_max_inputs=device_max_inputs,  # size of the physical gmzi
             optical_layer=itf_layer,
         )
 
@@ -81,7 +82,7 @@ class AllOpticalMNISTClassifier(nn.Module):
             num_layers=num_optical_layers,
             initial_size=input_size,
             final_size=num_classes,
-            num_modes=None,  # size of the physical gmzi
+            device_max_inputs=device_max_inputs,  # size of the physical gmzi
             optical_layer=itf_layer,
         )
 

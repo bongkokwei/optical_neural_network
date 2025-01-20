@@ -21,6 +21,7 @@ def train_mnist_optical_network(
     num_optical_input=32,
     num_layers=3,
     num_optical_layers=2,
+    device_max_inputs=32,
     dropout_rate=0.2,
     save_dir="saved_models",
     mnist_data_dir="./data",
@@ -80,6 +81,7 @@ def train_mnist_optical_network(
         num_optical_input=num_optical_input,
         num_layers=num_layers,
         num_optical_layers=num_optical_layers,
+        device_max_inputs=device_max_inputs,
         dropout_rate=dropout_rate,
     )
     print(model)
@@ -240,9 +242,10 @@ if __name__ == "__main__":
         epochs=5,
         learning_rate=0.001,
         batch_size=32,
-        num_layers=3,  # num layers of dimension reduction
-        num_optical_input=16,
-        num_optical_layers=1,
+        num_layers=4,  # num layers of dimension reduction
+        num_optical_input=32,
+        num_optical_layers=2,
+        device_max_inputs=32,
         dropout_rate=0.35,
         save_dir="./data/optical_mnist_models",
         mnist_data_dir="./data",

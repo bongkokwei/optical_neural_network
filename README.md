@@ -19,17 +19,22 @@ The system consists of several key components:
    - Trainable theta and phi parameters
    - Generates corresponding GDS layout
 
-2. **Optical Nonlinear Layer (`OpticalNonlinearLayer`):**
+2. **Adaptive Optical Linear Layer (`OpticalLinearLayer`):**
+   - Dynamically learns dimension reduction through adaptive weights instead of fixed masks
+   - Uses trainable parameters with sigmoid activation to automatically prioritize important dimensions
+   - Maintains physical optical constraints while providing standard PyTorch interface
+
+3. **Optical Nonlinear Layer (`AdaptiveOpticalLayer`):**
    - Implements Second Harmonic Generation (SHG) and Four-Wave Mixing (FWM)
    - Phase matching capabilities
    - Configurable nonlinear coefficients
 
-3. **Segmented Optical Layer (`SegmentedOpticalLayer`):**
+4. **Segmented Optical Layer (`SegmentedOpticalLayer`):**
    - Handles large-scale optical transformations
    - Segments input for practical hardware implementation
    - Automatic dimension management
 
-4. **MNIST Classifier (`OpticalMNISTClassifier`):**
+5. **MNIST Classifier (`OpticalMNISTClassifier`):**
    - Hybrid architecture combining optical and electronic components
    - Configurable number of optical and reduction layers
    - Dropout regularization

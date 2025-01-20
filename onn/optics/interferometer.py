@@ -230,9 +230,8 @@ def square_decomposition(U):
 # Example usage
 if __name__ == "__main__":
 
-    U = random_unitary(8)
+    U = random_unitary(32)
     print("Random unitary matrix:")
-    # print(U)
 
     interferometer = square_decomposition(U)
     print("Decomposed Interferometer:")

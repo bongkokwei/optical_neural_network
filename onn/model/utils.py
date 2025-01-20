@@ -69,7 +69,7 @@ def create_optical_layers(
     num_layers: int,
     initial_size: int,
     final_size: int,
-    num_modes: int = None,
+    device_max_inputs: int = None,
     optical_layer: Optional[Callable[[int, int], nn.Module]] = None,
 ) -> nn.Sequential:
     """
@@ -97,7 +97,7 @@ def create_optical_layers(
             optical_layer(
                 in_features=current_size,
                 out_features=next_size,
-                num_modes=num_modes,
+                device_max_inputs=device_max_inputs,
             ),
         )
 
@@ -116,7 +116,7 @@ def create_optical_layers(
         optical_layer(
             in_features=sizes[-2],
             out_features=final_size,
-            num_modes=num_modes,
+            device_max_inputs=device_max_inputs,
         ),
     )
 
