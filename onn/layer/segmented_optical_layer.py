@@ -15,7 +15,6 @@ class SegmentedOpticalLayer(nn.Module):
         device_max_inputs: int = 16,
         num_modes: int = None,
         interferometer: Interferometer = None,
-        additional_blocked_modes: list[int] = None,
     ):
         """
         Combines input segmentation with optical interferometer transformation.
@@ -26,7 +25,6 @@ class SegmentedOpticalLayer(nn.Module):
             device_max_inputs (int): Maximum inputs per optical device
             num_modes (int, optional): Number of modes per optical device
             interferometer (Interferometer, optional): Pre-configured interferometer
-            additional_blocked_modes (list[int], optional): Additional modes to block
         """
         super().__init__()
 
@@ -59,9 +57,8 @@ class SegmentedOpticalLayer(nn.Module):
             optical_layer = AdaptiveOpticalLayer(
                 in_features=segment_in_size,
                 out_features=self.segment_out_features,
-                num_modes=segment_modes,
+                device_max_inputs=segment_modes,
                 interferometer=interferometer.clone() if interferometer else None,
-                additional_blocked_modes=additional_blocked_modes,
             )
             self.optical_segments.append(optical_layer)
 
@@ -79,7 +76,6 @@ class SegmentedOpticalLayer(nn.Module):
                 out_features=out_features,
                 num_modes=final_modes,  # might cahnge to NONE
                 interferometer=interferometer.clone() if interferometer else None,
-                additional_blocked_modes=additional_blocked_modes,
             )
         else:
             self.output_transform = None

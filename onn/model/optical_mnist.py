@@ -70,11 +70,12 @@ class AllOpticalMNISTClassifier(nn.Module):
     ):
         super().__init__()
 
-        itf_layer = lambda in_features, out_features, num_modes: SegmentedOpticalLayer(
-            in_features=in_features,
-            out_features=out_features,
-            num_modes=num_modes,
-            device_max_inputs=device_max_inputs,
+        itf_layer = (
+            lambda in_features, out_features, device_max_inputs: SegmentedOpticalLayer(
+                in_features=in_features,
+                out_features=out_features,
+                device_max_inputs=device_max_inputs,
+            )
         )
 
         # Optical layers
@@ -90,5 +91,4 @@ class AllOpticalMNISTClassifier(nn.Module):
         batch_size = x.size(0)
         x = x.view(batch_size, -1)  # Flatten the input
         x = self.optical_layers(x)
-
         return x
