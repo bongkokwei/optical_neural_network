@@ -73,10 +73,9 @@ class OpticalNonlinearLayer(nn.Module):
         if self.nonlinearity_type == "FWM":
             # Third-order nonlinearity: P ∝ χ(3)E³
             output = x**3
-        else:  # SHG
-            # Second-order nonlinearity: P ∝ χ(2)E²
+        elif self.nonlinearity_type == "SHG":  # SHG
+            # Implement RelU here for now
             output = x**2
-
         if self.phase_matching:
             phase_factor = self._phase_matching_factor(self._phase_mismatch)
             output = output * phase_factor

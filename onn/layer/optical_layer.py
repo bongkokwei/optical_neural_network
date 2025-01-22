@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+
 from ..optics.interferometer import (
     Interferometer,
     square_decomposition,
@@ -46,7 +47,7 @@ def construct_complementary_matrix(U_sub, total_size=32):
 
     # Initialize with random complex matrix
     # A = X + iY where X,Y are real random matrices
-    A = np.random.randn(n, n) + 1j * np.random.randn(n, n)
+    A = np.eye(n)
 
     # First QR decomposition to get initial orthogonal matrix Q
     # Q is unitary, R is upper triangular
@@ -68,7 +69,15 @@ def construct_complementary_matrix(U_sub, total_size=32):
     D = np.diag(np.exp(-1j * np.angle(np.diag(Q))))
     U_comp = Q @ D
 
-    return U_comp
+    U_total = np.zeros(
+        (total_size, total_size),
+        dtype=complex,
+    )
+
+    U_total[:m, :m] = U_sub
+    U_total[m:, m:] = U_comp
+
+    return U_total
 
 
 def verify_unitarity(U_comp):
@@ -86,91 +95,137 @@ class OpticalLinearLayer(nn.Module):
         out_features: int,
         device_max_inputs: int = 16,
         interferometer: Interferometer = None,
-        additional_blocked_modes: list[int] = None,
+        trainable_params: dict = {},
+        to_normalise=False,
     ):
         """
-        Initializes the OpticalLinearLayer with automatic mode blocking based on dimensions.
+        Initializes the OpticalLinearLayer with support for fixed and trainable parameters.
 
         Args:
             in_features (int): Number of input features.
             out_features (int): Number of output features.
-            num_modes (int, optional): Number of optical modes.
-                                     Must be >= max(in_features, out_features).
+            device_max_inputs (int): Maximum number of optical modes supported by the device.
             interferometer (Interferometer, optional): Pre-configured interferometer.
-                                                     If None, a random unitary will be used.
-            additional_blocked_modes (list[int], optional): Additional mode indices to block.
+            trainable_params (dict, optional): Dictionary specifying which parameters to train.
+                Format: {
+                    'theta': list[bool],  # True for trainable theta params
+                    'phi': list[bool]     # True for trainable phi params
+                }
+                If None, all parameters are trainable.
+            to_normalise (bool): Whether to normalize parameters after each forward pass.
         """
         super().__init__()
 
-        # Set and validate basic parameters
         self.in_features = in_features
         self.out_features = out_features
-        self.device_max_inputs = device_max_inputs or max(in_features, out_features)
+        self.device_max_inputs = device_max_inputs
 
         if self.device_max_inputs < max(in_features, out_features):
             raise ValueError(
                 f"Number of modes ({self.device_max_inputs}) must be at least max(in_features, out_features)"
             )
 
-        # Process and validate blocked modes
-        self.additional_blocked_modes = set(additional_blocked_modes or [])
-        if invalid_modes := {
-            m
-            for m in self.additional_blocked_modes
-            if not 0 <= m < self.device_max_inputs
-        }:
-            raise ValueError(
-                f"Blocked modes {invalid_modes} are out of range [0, {self.device_max_inputs-1}]"
-            )
+        self._init_interferometer(interferometer, trainable_params)
 
-        # Create masks as buffers (moved to a separate method for clarity)
-        self._create_masks()
+        if to_normalise:
+            self.register_forward_hook(self._normalize_params_hook)
 
-        # Initialize interferometer parameters
-        self._init_interferometer(interferometer)
-
-        # Register parameter normalization hook
-        self.register_forward_hook(self._normalize_params_hook)
-
-    def _create_masks(self):
-        """Create input and output masks as buffers."""
-        input_mask = torch.zeros(self.device_max_inputs, dtype=torch.float32)
-        input_mask[: self.in_features] = 1.0
-        self.register_buffer("_input_mask", input_mask)
-
-        output_mask = torch.zeros(self.device_max_inputs, dtype=torch.float32)
-        output_mask[: self.out_features] = 1.0
-        output_mask[list(self.additional_blocked_modes)] = 0.0
-        self.register_buffer("_output_mask", output_mask)
-
-    def _init_interferometer(self, interferometer):
-        """Initialize interferometer parameters."""
+    def _init_interferometer(self, interferometer, trainable_params):
+        """Initialize interferometer with trainable and fixed parameters."""
         if interferometer is None:
-            U = random_unitary(self.device_max_inputs)
-            interferometer = square_decomposition(U)
+            effective_size = max(self.in_features, self.out_features)
+            if effective_size < self.device_max_inputs:
+                U_sub = random_unitary(effective_size)
+                U_total = construct_complementary_matrix(U_sub, self.device_max_inputs)
+                interferometer = square_decomposition(U_total)
+            else:
+                U = random_unitary(self.device_max_inputs)
+                interferometer = square_decomposition(U)
 
         self.itf = interferometer
 
-        # Extract and normalize parameters
-        theta_params = [bs.theta for bs in self.itf.BS_list]
-        phi_params = [bs.phi for bs in self.itf.BS_list]
+        # Extract initial parameters
+        theta_init = torch.tensor(
+            [bs.theta for bs in self.itf.BS_list], dtype=torch.float32
+        )
+        phi_init = torch.tensor(
+            [bs.phi for bs in self.itf.BS_list], dtype=torch.float32
+        )
 
-        theta_init = torch.tensor(theta_params, dtype=torch.float32)
-        phi_init = torch.tensor(phi_params, dtype=torch.float32)
-        theta_init, phi_init = normalize_optical_params(theta_init, phi_init)
-
+        # All parameters are trainable by default
         self.theta = nn.Parameter(theta_init)
         self.phi = nn.Parameter(phi_init)
+
+        trainable_params = {
+            "theta": [bs.trainable for bs in self.itf.BS_list],
+            "phi": [bs.trainable for bs in self.itf.BS_list],
+        }
+
+        # Handle trainable parameters
+        if trainable_params is not None:
+            self._set_parameter_trainability(trainable_params)
+
+    @torch.no_grad()
+    def _get_full_parameters(self):
+        """Reconstruct full parameter tensors from trainable and fixed parts."""
+        if hasattr(self, "theta_mask"):
+            # Initialize full parameter tensors
+            theta = torch.zeros_like(self.theta_mask, dtype=torch.float32)
+            phi = torch.zeros_like(self.phi_mask, dtype=torch.float32)
+
+            # Fill in trainable parameters
+            theta[self.theta_mask] = self.theta_trainable
+            phi[self.phi_mask] = self.phi_trainable
+
+            # Fill in fixed parameters
+            theta[~self.theta_mask] = self.theta_fixed
+            phi[~self.phi_mask] = self.phi_fixed
+        else:
+            # All parameters are trainable
+            theta = self.theta
+            phi = self.phi
+
+        return theta, phi
+
+    @torch.no_grad()
+    def _set_parameter_trainability(self, trainable_params):
+        # Create masks for trainable parameters
+        theta_mask = torch.tensor(
+            trainable_params.get("theta", [True] * len(self.theta)),
+            dtype=torch.bool,
+        )
+        phi_mask = torch.tensor(
+            trainable_params.get("phi", [True] * len(self.phi)), dtype=torch.bool
+        )
+
+        # Initialize trainable parameters
+        self.theta_trainable = nn.Parameter(self.theta[theta_mask])
+        self.phi_trainable = nn.Parameter(self.phi[phi_mask])
+
+        # Initialize fixed parameters as buffers
+        self.register_buffer("theta_fixed", self.theta[~theta_mask])
+        self.register_buffer("phi_fixed", self.phi[~phi_mask])
+
+        # Store masks for reconstruction
+        self.register_buffer("theta_mask", theta_mask)
+        self.register_buffer("phi_mask", phi_mask)
 
     @torch.no_grad()
     def _normalize_params_hook(self, module, input, output):
         """Hook to normalize parameters after each forward pass."""
-        normalized_theta, normalized_phi = normalize_optical_params(
-            self.theta, self.phi
-        )
-        self.theta.copy_(normalized_theta)
-        self.phi.copy_(normalized_phi)
+        theta, phi = self._get_full_parameters()
+        normalized_theta, normalized_phi = normalize_optical_params(theta, phi)
 
+        if hasattr(self, "theta_mask"):
+            # Update only trainable parameters
+            self.theta_trainable.copy_(normalized_theta[self.theta_mask])
+            self.phi_trainable.copy_(normalized_phi[self.phi_mask])
+        else:
+            # Update all parameters
+            self.theta.copy_(normalized_theta)
+            self.phi.copy_(normalized_phi)
+
+    @torch.no_grad()
     def _get_current_interferometer(self, theta, phi):
         """Create interferometer with current parameters."""
         current_interferometer = Interferometer()
@@ -188,33 +243,21 @@ class OpticalLinearLayer(nn.Module):
         return current_interferometer
 
     def forward(self, x):
-        """
-        Forward pass of the OpticalLinearLayer.
+        """Forward pass using combined trainable and fixed parameters."""
+        # Get full parameter sets
+        theta, phi = self._get_full_parameters()
 
-        Args:
-            x (torch.Tensor): Input tensor of shape (batch_size, in_features).
-
-        Returns:
-            torch.Tensor: Transformed tensor of shape (batch_size, out_features).
-        """
-        # Normalize and prepare parameters
-        current_theta, current_phi = normalize_optical_params(self.theta, self.phi)
+        # Normalize parameters
+        current_theta, current_phi = normalize_optical_params(theta, phi)
         theta_np = current_theta.detach().cpu().numpy()
         phi_np = current_phi.detach().cpu().numpy()
 
         # Get transformation matrix
         current_interferometer = self._get_current_interferometer(theta_np, phi_np)
         transformation = torch.tensor(
-            current_interferometer.calculate_transformation().real,
-            dtype=torch.float32,
+            current_interferometer.calculate_transformation(),
+            dtype=torch.complex64,
             device=x.device,
-        )
-
-        # Apply masks
-        transformation = (
-            transformation
-            * self._output_mask.unsqueeze(1)
-            * self._input_mask.unsqueeze(0)
         )
 
         # Handle input padding if needed
@@ -222,42 +265,32 @@ class OpticalLinearLayer(nn.Module):
             x = torch.nn.functional.pad(x, (0, self.device_max_inputs - x.shape[1]))
 
         # Apply transformation and truncate if needed
-        output = x @ transformation.T
+        output = torch.abs(x.to(torch.complex64) @ transformation.T)
         return (
             output[:, : self.out_features]
             if self.out_features < self.device_max_inputs
             else output
         )
 
-    def extra_repr(self):
-        """Return extra representation string."""
-        return (
-            f"in_features={self.in_features}, "
-            f"out_features={self.out_features}, "
-            f"device_max_inputs={self.device_max_inputs}, "
-            f"additional_blocked_modes={list(self.additional_blocked_modes)}"
-        )
-
 
 # Example usage:
 if __name__ == "__main__":
 
-    max_device_input = 32
+    max_device_input = 16
     out_features = 8
     U_subset = random_unitary(out_features)  # only uses a portion of input/output
-    U_comp = construct_complementary_matrix(
+    U_total = construct_complementary_matrix(
         U_subset,
         total_size=max_device_input,
     )  # complementary unitary, to ensure U_total is unitary
 
-    verify_unitarity(U_comp)
-
-    U_total = np.zeros(
-        (max_device_input, max_device_input),
-        dtype=complex,
-    )
-
-    U_total[:out_features, :out_features] = U_subset
-    U_total[out_features:, out_features:] = U_comp
-
     verify_unitarity(U_total)
+
+    from ..optics.interferometer import fidelity
+
+    itf = square_decomposition(U_total)
+    U_recon = itf.calculate_transformation()
+    print(
+        f"Fidelity between U_total and U_recon: {np.abs(fidelity(U_total, U_recon)):.6f}"
+    )
+    itf.draw()

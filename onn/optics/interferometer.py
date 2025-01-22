@@ -23,11 +23,26 @@ class Beamsplitter:
         self.mode2 = mode2
         self.theta = theta
         self.phi = phi
+        self.trainable = self._is_trainable()
+
+    def _is_trainable(self):
+        """
+        Determines if the beamsplitter parameters are trainable.
+        Returns False if both theta and phi are integer multiples of pi,
+        True otherwise.
+        """
+
+        def is_pi_multiple(value):
+            eps = 1e-10
+            return abs(value % np.pi) < eps or abs(value % np.pi - np.pi) < eps
+
+        return not (is_pi_multiple(self.theta) and is_pi_multiple(self.phi))
 
     def __repr__(self):
         return (
             f"\n Beamsplitter between modes {self.mode1} and {self.mode2}: "
             f"\n Theta angle: {self.theta:.2f} \n Phase: {self.phi:.2f}"
+            f"\n Trainable parameters: {self.trainable}"
         )
 
 

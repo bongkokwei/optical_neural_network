@@ -243,9 +243,9 @@ if __name__ == "__main__":
         learning_rate=0.001,
         batch_size=32,
         num_layers=4,  # num layers of dimension reduction
-        num_optical_input=32,
-        num_optical_layers=2,
-        device_max_inputs=32,
+        num_optical_input=16,
+        num_optical_layers=1,
+        device_max_inputs=16,
         dropout_rate=0.35,
         save_dir="./data/optical_mnist_models",
         mnist_data_dir="./data",

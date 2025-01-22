@@ -87,7 +87,7 @@ def train_breast_cancer_model(
     print(model)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
 
     setup_time = time.time() - setup_start_time
     print(f"\nSetup time: {setup_time:.2f}s")
@@ -232,10 +232,10 @@ def train_breast_cancer_model(
 if __name__ == "__main__":
     model, save_path = train_breast_cancer_model(
         epochs=20,
-        batch_size=32,
+        batch_size=8,
         learning_rate=0.001,
         device_max_inputs=32,
-        num_optical_layers=2,
+        num_optical_layers=5,
         save_dir="./data/saved_models",
         save_checkpoint=False,
     )

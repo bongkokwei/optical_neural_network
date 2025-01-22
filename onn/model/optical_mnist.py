@@ -28,7 +28,7 @@ class OpticalMNISTClassifier(nn.Module):
             )
 
         itf_layer = (
-            lambda in_features, out_features, device_max_inputs: AdaptiveOpticalLayer(
+            lambda in_features, out_features, device_max_inputs: OpticalLinearLayer(
                 in_features=in_features,
                 out_features=out_features,
                 device_max_inputs=device_max_inputs,
@@ -57,38 +57,4 @@ class OpticalMNISTClassifier(nn.Module):
         # Optical layers
         x = self.optical_layers(x)
 
-        return x
-
-
-class AllOpticalMNISTClassifier(nn.Module):
-    def __init__(
-        self,
-        num_optical_layers=3,
-        input_size=784,
-        num_classes=10,
-        device_max_inputs=16,
-    ):
-        super().__init__()
-
-        itf_layer = (
-            lambda in_features, out_features, device_max_inputs: SegmentedOpticalLayer(
-                in_features=in_features,
-                out_features=out_features,
-                device_max_inputs=device_max_inputs,
-            )
-        )
-
-        # Optical layers
-        self.optical_layers = create_optical_layers(
-            num_layers=num_optical_layers,
-            initial_size=input_size,
-            final_size=num_classes,
-            device_max_inputs=device_max_inputs,  # size of the physical gmzi
-            optical_layer=itf_layer,
-        )
-
-    def forward(self, x):
-        batch_size = x.size(0)
-        x = x.view(batch_size, -1)  # Flatten the input
-        x = self.optical_layers(x)
         return x
