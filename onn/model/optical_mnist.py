@@ -1,4 +1,5 @@
 import torch.nn as nn
+from functools import partial
 
 from ..layer.optical_layer import OpticalLinearLayer
 from ..layer.adaptive_optical_layer import AdaptiveOpticalLayer
@@ -27,13 +28,9 @@ class OpticalMNISTClassifier(nn.Module):
                 num_layers,
             )
 
-        itf_layer = (
-            lambda in_features, out_features, device_max_inputs: OpticalLinearLayer(
-                in_features=in_features,
-                out_features=out_features,
-                device_max_inputs=device_max_inputs,
-            )
-        )
+        self.dropout = nn.Dropout(dropout_rate)
+
+        itf_layer = partial(OpticalLinearLayer)
 
         # Optical layers
         self.optical_layers = create_optical_layers(
@@ -42,9 +39,8 @@ class OpticalMNISTClassifier(nn.Module):
             final_size=num_classes,
             device_max_inputs=device_max_inputs,  # size of the physical gmzi
             optical_layer=itf_layer,
+            dropout_rate=dropout_rate,
         )
-
-        nn.Dropout(dropout_rate)
 
     def forward(self, x):
         # Flatten input
@@ -53,7 +49,7 @@ class OpticalMNISTClassifier(nn.Module):
         # Reduce dimensionality
         if self.num_layers > 0:
             x = self.reduction_layers(x)
-
+            x = self.dropout(x)
         # Optical layers
         x = self.optical_layers(x)
 

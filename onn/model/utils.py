@@ -71,6 +71,7 @@ def create_optical_layers(
     final_size: int,
     device_max_inputs: int = None,
     optical_layer: Optional[Callable[[int, int], nn.Module]] = None,
+    dropout_rate=0.2,
 ) -> nn.Sequential:
     """
     Creates a Sequential module of optical layers with gradually reducing size,
@@ -110,6 +111,7 @@ def create_optical_layers(
                 phase_mismatch=0.0,  # Assume perfectly phase-matched
             ),
         )
+        layers.append(nn.Dropout(dropout_rate))
 
     # Final optical layer without nonlinearity
     layers.append(

@@ -3,14 +3,16 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
 import numpy as np
 import math
 import time
 import os
+import argparse
+
+from torch.utils.data import DataLoader
 from datetime import datetime
 from tqdm.auto import tqdm
-
+from pathlib import Path
 from onn.model.optical_mnist import OpticalMNISTClassifier
 
 
@@ -23,6 +25,7 @@ def train_mnist_optical_network(
     num_optical_layers=2,
     device_max_inputs=32,
     dropout_rate=0.2,
+    optical_dropout=0.2,
     save_dir="saved_models",
     mnist_data_dir="./data",
     save_checkpoint=False,
@@ -166,17 +169,17 @@ def train_mnist_optical_network(
             f"optical_mnist_model_best_{timestamp}.pth",
         )
 
+        best_test_accuracy = test_accuracy
+        best_epoch = epoch
+
         # Save model if it has the best test accuracy
         if test_accuracy > best_test_accuracy and save_checkpoint:
-            best_test_accuracy = test_accuracy
-            best_epoch = epoch
-
             # Save the checkpoint
             torch.save(
                 {
                     "epoch": epoch,
                     "model_state_dict": model.state_dict(),
-                    "optimizer_state_dict": optimizer.state_dict(),
+                    "optimiser_state_dict": optimizer.state_dict(),
                     "train_loss": total_loss / len(train_loader),
                     "train_accuracy": train_accuracy,
                     "test_loss": test_loss / len(test_loader),
@@ -221,7 +224,7 @@ def train_mnist_optical_network(
             {
                 "epoch": epochs - 1,
                 "model_state_dict": model.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
+                "optimiser_state_dict": optimizer.state_dict(),
                 "train_loss": total_loss / len(train_loader),
                 "train_accuracy": train_accuracy,
                 "test_loss": test_loss / len(test_loader),
@@ -236,18 +239,112 @@ def train_mnist_optical_network(
     return model, save_path
 
 
-# Example usage
-if __name__ == "__main__":
-    model, save_path = train_mnist_optical_network(
-        epochs=5,
-        learning_rate=0.001,
-        batch_size=32,
-        num_layers=4,  # num layers of dimension reduction
-        num_optical_input=16,
-        num_optical_layers=1,
-        device_max_inputs=16,
-        dropout_rate=0.35,
-        save_dir="./data/optical_mnist_models",
-        mnist_data_dir="./data",
-        save_checkpoint=False,
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Train MNIST Optical Network with customizable parameters"
     )
+
+    # Training parameters
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=5,
+        help="Number of training epochs",
+    )
+    parser.add_argument(
+        "--learning-rate",
+        type=float,
+        default=0.001,
+        help="Learning rate for optimizer",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=32,
+        help="Batch size for training",
+    )
+
+    # Network architecture
+    parser.add_argument(
+        "--num-layers",
+        type=int,
+        default=4,
+        help="Number of layers for dimension reduction",
+    )
+    parser.add_argument(
+        "--num-optical-input",
+        type=int,
+        default=16,
+        help="Number of optical inputs",
+    )
+    parser.add_argument(
+        "--num-optical-layers",
+        type=int,
+        default=3,
+        help="Number of optical layers",
+    )
+    parser.add_argument(
+        "--device-max-inputs",
+        type=int,
+        default=16,
+        help="Maximum number of device inputs",
+    )
+
+    # Regularization
+    parser.add_argument(
+        "--dropout-rate",
+        type=float,
+        default=0.1,
+        help="Dropout rate for regularization",
+    )
+
+    # File paths
+    parser.add_argument(
+        "--save-dir",
+        type=str,
+        default="./data/optical_mnist_models",
+        help="Directory to save model checkpoints",
+    )
+    parser.add_argument(
+        "--mnist-data-dir",
+        type=str,
+        default="./data",
+        help="Directory containing MNIST dataset",
+    )
+
+    # Additional options
+    parser.add_argument(
+        "--save-checkpoint",
+        action="store_true",
+        help="Whether to save model checkpoints",
+    )
+
+    args = parser.parse_args()
+
+    # Create save directory if it doesn't exist
+    Path(args.save_dir).mkdir(parents=True, exist_ok=True)
+
+    return args
+
+
+def main():
+    args = parse_args()
+
+    # Call the training function with parsed arguments
+    model, save_path = train_mnist_optical_network(
+        epochs=args.epochs,
+        learning_rate=args.learning_rate,
+        batch_size=args.batch_size,
+        num_layers=args.num_layers,
+        num_optical_input=args.num_optical_input,
+        num_optical_layers=args.num_optical_layers,
+        device_max_inputs=args.device_max_inputs,
+        dropout_rate=args.dropout_rate,
+        save_dir=args.save_dir,
+        mnist_data_dir=args.mnist_data_dir,
+        save_checkpoint=args.save_checkpoint,
+    )
+
+
+if __name__ == "__main__":
+    main()
