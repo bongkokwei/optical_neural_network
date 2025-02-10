@@ -8,3 +8,4 @@ pytest
 optuna
 gdsfactory
 scikit-learn
+numdifftools

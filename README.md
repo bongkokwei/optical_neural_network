@@ -5,7 +5,7 @@ This project implements a hybrid optical-electronic neural network architecture 
 - **Optical Linear Layers**: Implementation of optical interferometer-based linear transformations
 - **Optical Nonlinear Operations**: Simulated optical nonlinearities (SHG, FWM)
 - **Fock State Simulation**: Quantum optical state evolution simulation
-- **Hyperparameter Optimization**: Automated tuning using Optuna
+- **Hyperparameter Optimisation**: Automated tuning using Optuna
 - **MNIST Classification**: Demonstration on the MNIST dataset
 - **Modular Architecture**: Flexible combination of optical and electronic components
 - **GDS Layout Generation**: Automated creation of photonic circuit layouts
@@ -21,7 +21,7 @@ The system consists of several key components:
 
 2. **Adaptive Optical Linear Layer (`OpticalLinearLayer`):**
    - Dynamically learns dimension reduction through adaptive weights instead of fixed masks
-   - Uses trainable parameters with sigmoid activation to automatically prioritize important dimensions
+   - Uses trainable parameters with sigmoid activation to automatically prioritise important dimensions
    - Maintains physical optical constraints while providing standard PyTorch interface
 
 3. **Optical Nonlinear Layer (`AdaptiveOpticalLayer`):**
@@ -37,7 +37,7 @@ The system consists of several key components:
 5. **MNIST Classifier (`OpticalMNISTClassifier`):**
    - Hybrid architecture combining optical and electronic components
    - Configurable number of optical and reduction layers
-   - Dropout regularization
+   - Dropout regularisation
 
 ## 📊 Physical Implementation
 ### Interferometer Mesh Layout
@@ -47,7 +47,7 @@ The project includes automated generation of GDS layouts for the optical interfe
 
 Key features of the layout generation:
 - Automated placement of Mach-Zehnder interferometers
-- Optimized waveguide routing
+- Optimised waveguide routing
 - Minimal crossing design
 - Configurable layer specifications
 - Support for different foundry process design kits (PDKs)
@@ -67,7 +67,7 @@ layout.wrtie_gds()
 
 ## 📊 Performance
 The model achieves competitive accuracy on the MNIST dataset while incorporating optical computing elements. Key performance features include:
-- Automated hyperparameter optimization
+- Automated hyperparameter optimisation
 - Real-time training metrics
 - Checkpoint saving for best models
 - Comprehensive timing analysis
@@ -98,7 +98,7 @@ model, save_path = train_mnist_optical_network(
 The project includes a detailed simulation of optical interferometers:
 - Beamsplitter implementation
 - Unitary matrix decomposition
-- Visualization capabilities
+- Visualisation capabilities
 - Fock state evolution
 - Physical layout generation
 
@@ -115,7 +115,7 @@ The system supports various optical computing paradigms:
 - `onn/layout`: GDS layout generation tools
 - `optics/interferometer.py`: Optical interferometer simulation
 - `optics/fock_state_simulation.py`: Quantum optical state evolution
-- `optim_hperparam.py`: Hyperparameter optimization
+- `optim_hperparam.py`: Hyperparameter optimisation
 
 ## 🛠️ Configuration Options
 The system is highly configurable with options for:

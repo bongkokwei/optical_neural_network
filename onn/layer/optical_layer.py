@@ -268,3 +268,10 @@ class OpticalLinearLayer(nn.Module):
             if self.out_features < self.device_max_inputs
             else output
         )
+
+    def extra_repr(self) -> str:
+        return (
+            f"in_features={self.in_features},"
+            f"out_features={self.out_features},"
+            f"device_max_input={self.device_max_inputs}"
+        )
