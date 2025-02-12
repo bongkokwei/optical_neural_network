@@ -274,19 +274,19 @@ def parse_args():
     parser.add_argument(
         "--num-optical-input",
         type=int,
-        default=16,
+        default=32,
         help="Number of optical inputs",
     )
     parser.add_argument(
         "--num-optical-layers",
         type=int,
-        default=3,
+        default=2,
         help="Number of optical layers",
     )
     parser.add_argument(
         "--device-max-inputs",
         type=int,
-        default=16,
+        default=32,
         help="Maximum number of device inputs",
     )
 

@@ -110,7 +110,7 @@ class OpticalLinearLayer(nn.Module):
 
         if self.device_max_inputs < max(in_features, out_features):
             raise ValueError(
-                f"Number of modes ({self.device_max_inputs}) must be at least max(in_features, out_features)"
+                f"Number of modes ({self.device_max_inputs}) must be at least {(max(in_features, out_features))}"
             )
 
         # Initialise trainable parameter tracking

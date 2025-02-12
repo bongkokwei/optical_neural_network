@@ -30,15 +30,13 @@ class OpticalMNISTClassifier(nn.Module):
 
         self.dropout = nn.Dropout(dropout_rate)
 
-        itf_layer = partial(OpticalLinearLayer)
-
         # Optical layers
         self.optical_layers = create_optical_layers(
             num_layers=num_optical_layers,
             initial_size=num_optical_input,
             final_size=num_classes,
             device_max_inputs=device_max_inputs,  # size of the physical gmzi
-            optical_layer=itf_layer,
+            optical_layer=OpticalLinearLayer,
             dropout_rate=dropout_rate,
         )
 

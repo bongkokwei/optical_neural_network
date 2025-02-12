@@ -104,12 +104,7 @@ def create_optical_layers(
 
         # Add activation functions
         layers.append(
-            OpticalNonlinearLayer(
-                nonlinearity_type="SHG",
-                chi=1.3e-22,  # d_33 of KTP crystal
-                phase_matching=False,
-                phase_mismatch=0.0,  # Assume perfectly phase-matched
-            ),
+            OpticalNonlinearLayer(nonlinearity_type="SHG"),
         )
         layers.append(nn.Dropout(dropout_rate))
 
