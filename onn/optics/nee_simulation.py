@@ -7,7 +7,7 @@ from functools import partial
 from typing import Callable
 import matplotlib.pyplot as plt
 
-from pulse_gen import gen_pulse_freq
+from pulse_gen import gen_pulse_freq, generate_frequency_pulse
 from sellmeier import sellmeier_mgln
 
 
@@ -102,23 +102,38 @@ def solve_nee(
     """
     # Convert alpha from dB/cm to linear units
     alpha = partial(calculate_transmission, attenuation_db_per_cm=loss_cm)
-    # alpha = calculate_transmission(z_max, attenuation_db_per_cm=loss_cm)
 
     # Create grids
     z_array, dz = np.linspace(0, z_max, n_z_steps, retstep=True, endpoint=True)
     print(f"step size in z-dir: {dz*1e6:.2f} micron")
 
-    _, freq, field = gen_pulse_freq(
-        center_wavelength=pulse_params.get("wave_ref", 1550e-9),
-        fwhm=pulse_params.get("width", 3e-9),
-        pulse_energy=pulse_params.get("pulse_energy", 1),
+    # _, freq, field = gen_pulse_freq(
+    #     center_wavelength=pulse_params.get("wave_ref", 1550e-9),
+    #     fwhm=pulse_params.get("width", 3e-9),
+    #     pulse_energy=pulse_params.get("pulse_energy", 1),
+    #     pulse_type=initial_pulse,
+    #     num_points=n_points,
+    #     range_factor=20,
+    # )
+
+    # Get spectral profile
+    wavelengths = np.linspace(700e-9, 1600e-9, n_points)
+    freq = c / wavelengths
+    center_wave = np.array([1550e-9, 775e-9])
+    center_freq = c / center_wave
+    widths = np.array([50e-9, 50e-9])  # in meter
+    energies = [300e-15, 1e-15]
+
+    field, _ = generate_frequency_pulse(
+        f=freq,
         pulse_type=initial_pulse,
-        num_points=n_points,
-        range_factor=20,
+        center_frequencies=center_freq,
+        energies=energies,
+        width=c / center_wave**2 * widths,  # in freq
     )
 
     delta_freq = freq - freq[n_points // 2]
-    df = (delta_freq[-1] - delta_freq[0]) / (n_points - 1)
+    df = np.abs(delta_freq[-1] - delta_freq[0]) / (n_points - 1)
     t = fftshift(fftfreq(n_points, np.abs(df)))
     omega = 2 * np.pi * freq
     omega_ref = wav_to_ang_freq(params.get("wave_ref", 1550e-9))
@@ -128,13 +143,11 @@ def solve_nee(
     field_z[0] = field
 
     if beta_func is None:
-        # Default to second-order dispersion
         raise ValueError("beta_func must be a function")
 
     linear_op = lambda z: -1j * (
-        beta_func(omega + omega_ref) - omega / v_ref - alpha(z) / 2
+        beta_func(omega) - beta_func(omega_ref) - omega / v_ref - alpha(z) / 2
     )
-    # linear_op = -1j * (beta_func(omega + omega_ref) - omega / v_ref - alpha / 2)
 
     # Define nonlinear operator (in time domain)
     X0 = pulse_params.get("X0", 1.0)  # Effective nonlinear coefficient
@@ -145,6 +158,7 @@ def solve_nee(
 
         def nl_term(z, a_t: np.ndarray):
             # Convert to complex if needed
+            # a_t = ifft(a_omega)
             if np.isscalar(a_t):
                 a_t = complex(a_t)
             else:
@@ -200,15 +214,15 @@ if __name__ == "__main__":
     params = {
         "width": 100e-9,  # 70 fs pulse width
         "beta": 1.0,  # Example dispersion
-        "pulse_energy": 10e-15,  # joules
+        "pulse_energy": 10e-10,  # joules
         "X0": 0.36e-12,  # Nonlinear coefficient (V²)
         "wave_ref": 1550e-9,
     }
 
     # Solve equation
     field_z, t, freq = solve_nee(
-        z_max=2.5e-3,  # 2.5 mm propagation
-        n_z_steps=2000,
+        z_max=25e-3,  # 2.5 mm propagation
+        n_z_steps=20000,
         n_points=2**14,
         loss_cm=3,  # 0.1 dB/cm loss
         v_ref=c / n_eff_tfln(1.55),
@@ -234,7 +248,6 @@ if __name__ == "__main__":
     ax_t.set_ylabel("Power (normalized)")
     ax_t.legend()
     ax_t.grid()
-    # ax_t.set_yscale("log")
 
     ax_f.plot(
         freq * 1e-12,
@@ -251,7 +264,9 @@ if __name__ == "__main__":
     ax_f.set_ylabel("Spectrum (normalized)")
     ax_f.legend()
     ax_f.grid()
+
     # ax_f.set_yscale("log")
+    # ax_t.set_yscale("log")
 
     fig.tight_layout()
     plt.show()

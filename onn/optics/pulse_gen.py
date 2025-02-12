@@ -5,6 +5,124 @@ from scipy.constants import c, pi
 from scipy.integrate import quad
 
 
+def generate_frequency_pulse(
+    f,
+    pulse_type="gaussian",
+    center_frequencies=None,
+    energies=None,
+    width=1.0,
+    center=0.0,
+):
+    """
+    Generate a multi-peak Gaussian or hyperbolic secant pulse in frequency domain
+    with specified pulse energies.
+
+    Parameters:
+    -----------
+    f : array_like
+        Frequency array in Hz
+    pulse_type : str, optional
+        Type of pulse ('gaussian' or 'sech'), default is 'gaussian'
+    center_frequencies : array_like
+        List of center frequencies for each peak in Hz
+    energies : array_like, optional
+        List of pulse energies for each peak. If None, all peaks have energy 1.
+        Energies are normalized so their sum equals the total desired energy.
+    width : float or array_like, optional
+        Spectral width parameter for each peak (FWHM).
+        If single value, same width applied to all peaks.
+    center : float, optional
+        Center frequency offset applied to all peaks
+
+    Returns:
+    --------
+    array_like
+        Complex spectrum of the multi-peak pulse
+    dict
+        Dictionary containing peak parameters and actual energies
+    """
+
+    # Input validation and defaults
+    if center_frequencies is None:
+        center_frequencies = [0]  # Default to single peak at zero frequency
+
+    center_frequencies = np.array(center_frequencies)
+    num_peaks = len(center_frequencies)
+
+    if energies is None:
+        energies = np.ones(num_peaks)
+    else:
+        energies = np.array(energies)
+        if len(energies) != num_peaks:
+            raise ValueError(
+                "Number of energies must match number of center frequencies"
+            )
+
+    # Handle width parameter
+    if np.isscalar(width):
+        width = np.full(num_peaks, width)
+    else:
+        width = np.array(width)
+        if len(width) != num_peaks:
+            raise ValueError("Number of widths must match number of center frequencies")
+
+    # Initialize spectrum and actual energy tracking
+    spectrum = np.zeros_like(f, dtype=complex)
+    actual_energies = {}
+
+    # Frequency step for integration
+    df = np.abs(f[1] - f[0])
+
+    # Generate each spectral peak
+    for idx, (freq, energy, w) in enumerate(zip(center_frequencies, energies, width)):
+        # Shift frequency array by center frequency and overall offset
+        f_shifted = f - (freq + center)
+
+        # Generate unnormalized spectral shape based on pulse type
+        if pulse_type.lower() == "gaussian":
+            # Convert FWHM to standard deviation (σ)
+            # FWHM = 2.355 * σ for Gaussian
+            sigma = w / 2.355
+            peak = np.exp(-0.5 * (f_shifted / sigma) ** 2)
+
+            # Calculate normalization factor for desired energy
+            # Energy = ∫|A(f)|²df
+            current_energy = np.sum(np.abs(peak) ** 2) * df
+            norm_factor = np.sqrt(energy / current_energy)
+            peak *= norm_factor
+
+        elif pulse_type.lower() == "sech":
+            # For sech^2, FWHM ≈ 1.763 * w
+            w_scaled = w / 1.763
+            peak = (1 / np.cosh(2 * (f_shifted / w_scaled))) ** 2
+            # print(np.max(np.cosh(2 * (f_shifted / w_scaled))))
+
+            # Calculate normalization factor for desired energy
+            current_energy = np.sum(np.abs(peak) ** 2) * df
+            norm_factor = np.sqrt(energy / current_energy)
+            peak *= norm_factor
+
+        else:
+            raise ValueError("Pulse type must be 'gaussian' or 'sech'")
+
+        # Add normalized peak to spectrum
+        spectrum += peak
+
+        # Store actual energy of this peak
+        actual_energies[f"peak_{idx}"] = {
+            "center_freq": freq + center,
+            "width": w,
+            "target_energy": energy,
+            "actual_energy": np.sum(np.abs(peak) ** 2) * df,
+        }
+
+    # Calculate total spectrum energy
+    total_energy = np.sum(np.abs(spectrum) ** 2) * df
+    actual_energies["total"] = total_energy
+
+    return spectrum, actual_energies
+
+
 def gen_pulse_freq(
     center_wavelength,
     fwhm,
@@ -29,6 +147,8 @@ def gen_pulse_freq(
         Type of pulse shape ('gaussian' or 'sech2')
     num_points : int
         Number of points for simulation
+    unit : float
+        adds suffix to parameter values (m)
 
     Returns:
     --------
@@ -71,7 +191,7 @@ def gen_pulse_freq(
             ** 2
         )
     else:
-        raise ValueError("Pulse type must be either 'gaussian' or 'sech2'")
+        raise ValueError("Pulse type must be either 'gaussian' or 'sech'")
 
     # Normalize to given pulse energy
     spectrum = spectrum * np.abs(pulse_energy / np.trapezoid(spectrum, frequencies))
@@ -112,7 +232,7 @@ def calculate_temporal_profile(
     time = np.fft.fftshift(np.fft.fftfreq(n_pad, np.abs(df)))
 
     # Perform inverse Fourier transform
-    E_omega_padded = np.zeros(n_pad)
+    E_omega_padded = np.zeros(n_pad, dtype=np.complex128)
     pad_start = (n_pad - n_points) // 2
     E_omega_padded[pad_start : pad_start + n_points] = E_omega
     E_t = np.fft.ifftshift(np.fft.ifft(E_omega_padded))
@@ -136,54 +256,71 @@ def plot_pulse_domains(
     """
     Plot both spectral and temporal domains
     """
+    # # Get spectral profile
+    # wavelengths, frequencies, spectrum = gen_pulse_freq(
+    #     center_wavelength,
+    #     fwhm,
+    #     pulse_energy,
+    #     pulse_type,
+    #     num_points=num_points,
+    #     range_factor=10,
+    # )
+
     # Get spectral profile
-    wavelengths, frequencies, spectrum = gen_pulse_freq(
-        center_wavelength,
-        fwhm,
-        pulse_energy,
-        pulse_type,
-        num_points=num_points,
-        range_factor=10,
+    wavelengths = np.linspace(700e-9, 1600e-9, num_points)
+    frequencies = c / wavelengths
+    center_wave = np.array([1550e-9, 775e-9])
+    center_freq = c / center_wave
+    widths = np.array([15e-9, 15e-9])  # in meter
+    energies = [30e-15, 10e-15]
+
+    spectrum, _ = generate_frequency_pulse(
+        f=frequencies,
+        pulse_type=pulse_type,
+        center_frequencies=center_freq,
+        energies=energies,
+        width=c / center_wave**2 * widths,  # in freq
     )
 
     # Calculate temporal profile
     time_fs, temporal_intensity = calculate_temporal_profile(
         frequencies,
         spectrum,
-        pad_factor=200,
+        pad_factor=500,
     )
 
     # Create subplots
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
 
     # Plot spectral domain
-    ax1.plot(wavelengths, spectrum)
+    ax1.plot(wavelengths * 1e9, np.abs(spectrum))
     ax1.set_xlabel("Wavelength (nm)")
     ax1.set_ylabel("Spectral Intensity (a.u.)")
     ax1.set_title(f"{pulse_type.capitalize()} Pulse - Spectral Domain")
     ax1.grid(True)
 
-    # Add FWHM markers
-    ax1.axvline(
-        center_wavelength,
-        color="r",
-        linestyle="--",
-        alpha=0.5,
-        label="Center wavelength",
-    )
-    ax1.axvline(
-        center_wavelength - fwhm / 2,
-        color="g",
-        linestyle="--",
-        alpha=0.5,
-        label="FWHM",
-    )
-    ax1.axvline(
-        center_wavelength + fwhm / 2,
-        color="g",
-        linestyle="--",
-        alpha=0.5,
-    )
+    for c_wave, width in zip(center_wave, widths):
+        ax1.axvline(
+            c_wave * 1e9,
+            color="r",
+            linestyle="--",
+            alpha=0.5,
+            label=f"Center wavelength = {c_wave*1e9} nm",
+        )
+        ax1.axvline(
+            (c_wave - width) * 1e9,
+            color="g",
+            linestyle="--",
+            alpha=0.5,
+            label=f"FWHM = {width*1e9:.2f} nm",
+        )
+
+        ax1.axvline(
+            (c_wave + width) * 1e9,
+            color="g",
+            linestyle="--",
+            alpha=0.5,
+        )
     ax1.legend()
 
     # Plot temporal domain
