@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "optical-neural-network"
+version = "0.1.0"
+description = "Hybrid optical-electronic neural network implementation for MNIST classification"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Kok-Wei Bong", email = "bongkokwei@gmail.com"},
+]
+keywords = ["optical", "neural-network", "photonics", "machine-learning", "interferometer"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research", 
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "scipy",
+    "torch",
+    "torchvision", 
+    "tqdm",
+    "optuna",
+    "gdsfactory",
+    "scikit-learn",
+    "numdifftools",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "black",
+    "flake8", 
+    "mypy",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/optical-neural-network"
+Repository = "https://github.com/yourusername/optical-neural-network"
+Documentation = "https://github.com/yourusername/optical-neural-network#readme"
+"Bug Tracker" = "https://github.com/yourusername/optical-neural-network/issues"
