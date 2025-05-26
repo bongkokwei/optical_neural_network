@@ -6,7 +6,7 @@ from functools import lru_cache
 from torch import Tensor
 from typing import Optional, Tuple, Dict
 
-from ..optics.interferometer import (
+from onn.optics.interferometer import (
     Interferometer,
     square_decomposition,
     random_unitary,

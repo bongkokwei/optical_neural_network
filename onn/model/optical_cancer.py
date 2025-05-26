@@ -1,9 +1,9 @@
 import torch.nn as nn
 
-from ..layer.optical_layer import OpticalLinearLayer
-from ..layer.adaptive_optical_layer import AdaptiveOpticalLayer
-from ..layer.segmented_optical_layer import SegmentedOpticalLayer
-from .utils import create_optical_layers, create_reduction_layers
+from onn.layer.optical_layer import OpticalLinearLayer
+from onn.layer.adaptive_optical_layer import AdaptiveOpticalLayer
+from onn.layer.segmented_optical_layer import SegmentedOpticalLayer
+from onn.model.utils import create_optical_layers, create_reduction_layers
 
 
 class OpticalCancerClassifier(nn.Module):

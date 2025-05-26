@@ -3,7 +3,7 @@ import math
 from typing import Callable, Optional
 import torch.nn as nn
 
-from ..layer.optical_activation_layer import (
+from onn.layer.optical_activation_layer import (
     OpticalNonlinearLayer,
 )
 

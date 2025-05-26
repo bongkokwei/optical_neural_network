@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import torch
 
 from scipy.constants import epsilon_0, mu_0, c, pi
-from .sellmeier import sellmeier_mgln
+from onn.optics.sellmeier import sellmeier_mgln
 
 eta_0 = np.sqrt(mu_0 / epsilon_0)
 

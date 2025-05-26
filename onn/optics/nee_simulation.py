@@ -7,8 +7,8 @@ from functools import partial
 from typing import Callable
 import matplotlib.pyplot as plt
 
-from pulse_gen import gen_pulse_freq, generate_frequency_pulse
-from sellmeier import sellmeier_mgln
+from onn.optics.pulse_gen import gen_pulse_freq, generate_frequency_pulse
+from onn.optics.sellmeier import sellmeier_mgln
 
 
 def ang_freq_to_wav(omega: float):

@@ -5,7 +5,7 @@ from functools import partial
 from scipy.constants import c, pi
 
 
-from sellmeier import sellmeier_mgln
+from onn.optics.sellmeier import sellmeier_mgln
 
 
 def n_eff_tfln(wav):

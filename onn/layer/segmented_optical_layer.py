@@ -3,8 +3,8 @@ import torch.nn as nn
 import numpy as np
 from ..optics.interferometer import Interferometer
 
-from .adaptive_optical_layer import AdaptiveOpticalLayer
-from .optical_layer import OpticalLinearLayer
+from onn.layer.adaptive_optical_layer import AdaptiveOpticalLayer
+from onn.layer.optical_layer import OpticalLinearLayer
 
 
 class SegmentedOpticalLayer(nn.Module):

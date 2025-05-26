@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from ..optics.interferometer import (
+from onn.optics.interferometer import (
     Interferometer,
     square_decomposition,
     random_unitary,

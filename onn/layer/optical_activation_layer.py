@@ -8,7 +8,7 @@ from typing import (
     Union,
 )
 from enum import Enum
-from ..optics.output_fields import shg_out
+from onn.optics.output_fields import shg_out
 
 
 class OpticalNonlinearLayer(nn.Module):

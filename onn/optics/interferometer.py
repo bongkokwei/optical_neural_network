@@ -1,5 +1,5 @@
 import numpy as np
-from .utils import custom_angle, custom_arctan, random_unitary, fidelity
+from onn.optics.utils import custom_angle, custom_arctan, random_unitary, fidelity
 
 
 class Beamsplitter:
