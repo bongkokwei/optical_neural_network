@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Hybrid optical-electronic neural network implementation for MNIST classification"
 readme = "README.md"
 requires-python = ">=3.8"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Kok-Wei Bong", email = "bongkokwei@gmail.com"},
 ]
@@ -16,7 +16,6 @@ keywords = ["optical", "neural-network", "photonics", "machine-learning", "inter
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research", 
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
@@ -48,7 +47,11 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/optical-neural-network"
-Repository = "https://github.com/yourusername/optical-neural-network"
-Documentation = "https://github.com/yourusername/optical-neural-network#readme"
-"Bug Tracker" = "https://github.com/yourusername/optical-neural-network/issues"
+Homepage = "https://github.com/bongkokwei/optical-neural-network"
+Repository = "https://github.com/bongkokwei/optical-neural-network"
+Documentation = "https://github.com/bongkokwei/optical-neural-network#readme"
+"Bug Tracker" = "https://github.com/bongkokwei/optical-neural-network/issues"
+
+[tool.setuptools.packages.find]
+include = ["onn*"]
+exclude = ["figures*", "tests*"]
